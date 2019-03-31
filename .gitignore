@@ -1,0 +1,5 @@
+data/
+*.log
+*.npz
+*.pyc
+pycocoevalcap/
