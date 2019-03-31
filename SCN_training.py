@@ -2,7 +2,9 @@
 Semantic Compositional Network https://arxiv.org/pdf/1611.08002.pdf
 Developed by Zhe Gan, zg27@duke.edu, July, 12, 2016
 '''
-
+import argparse
+import json
+import sys
 import time
 import logging
 import cPickle
@@ -19,6 +21,34 @@ from model_scn.utils import get_minibatches_idx, zipp, unzip
 # Set the random number generators' seeds for consistency
 SEED = 123  
 np.random.seed(SEED)
+
+OCCURRENCE_DATA = "adjective_noun_occurrence_data"
+PAIR_OCCURENCES = "pair_occurrences"
+
+def get_splits_from_occurrences_data(occurrences_data_file, val_set_size=0.0):
+    with open(occurrences_data_file, "r") as json_file:
+        occurrences_data = json.load(json_file)
+
+    test_images_split = [
+        key
+        for key, value in occurrences_data[OCCURRENCE_DATA].items()
+        if value[PAIR_OCCURENCES] >= 1
+    ]
+
+    indices_without_test = [
+        key
+        for key, value in occurrences_data[OCCURRENCE_DATA].items()
+        if value[PAIR_OCCURENCES] == 0
+    ]
+
+    train_val_split = int((1 - val_set_size) * len(indices_without_test))
+    train_images_split = indices_without_test[:train_val_split]
+    val_images_split = indices_without_test[train_val_split:]
+
+    return train_images_split, val_images_split, test_images_split
+
+def get_coco_id_from_path(path):
+    return int(path.split("_")[2].split(".")[0])
 
 def prepare_data(seqs):
     
@@ -56,7 +86,7 @@ def calu_negll(f_cost, prepare_data, data, img_feats, tag_feats, iterator):
 
 def train_model(train, valid, test, img_feats, tag_feats, W, n_words=8791, n_x=300, n_h=512,
     n_f = 512, max_epochs=20, lrate=0.0002, batch_size=64, valid_batch_size=64, 
-    dropout_val=0.5, dispFreq=10, validFreq=500, saveFreq=1000, 
+    dropout_val=0.5, dispFreq=100, validFreq=500, saveFreq=1000,
     saveto = 'coco_result_scn.npz'):
         
     """ n_words : vocabulary size
@@ -90,7 +120,7 @@ def train_model(train, valid, test, img_feats, tag_feats, W, n_words=8791, n_x=3
     options['n_z'] = img_feats.shape[0]
     options['n_y'] = tag_feats.shape[0]
     options['SEED'] = SEED
-   
+
     logger.info('Model options {}'.format(options))
     logger.info('{} train examples'.format(len(train[0])))
     logger.info('{} valid examples'.format(len(valid[0])))
@@ -207,12 +237,27 @@ def train_model(train, valid, test, img_feats, tag_feats, W, n_words=8791, n_x=3
     
     return valid_negll, test_negll
 
+def check_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--occurrences-data",
+        help="File containing occurrences statistics about adjective noun pairs",
+        required=True,
+    )
+
+    parsed_args = parser.parse_args(args)
+    print(parsed_args)
+    return parsed_args
+
+
 if __name__ == '__main__':
+
+    parsed_args = check_args(sys.argv[1:])
     
     # https://docs.python.org/2/howto/logging-cookbook.html
     logger = logging.getLogger('eval_coco_scn')
     logger.setLevel(logging.INFO)
-    fh = logging.FileHandler('eval_coco_scn.log')
+    fh = logging.FileHandler('train_coco_scn.log')
     fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
@@ -230,7 +275,75 @@ if __name__ == '__main__':
     x = cPickle.load(open("./data/coco/word2vec.p","rb"))
     W = x[0]
     del x
-    
+
+    train_images_split, val_images_split, test_images_split = get_splits_from_occurrences_data(
+        parsed_args.occurrences_data, 0.1
+    )
+
+    new_train_0 = []
+    new_train_1 = []
+    new_train_2 = []
+    new_val_0 = []
+    new_val_1 = []
+    new_val_2 = []
+    new_test_0 = []
+    new_test_1 = []
+    new_test_2 = []
+
+    for i in range(len(train[2])):
+        coco_id = unicode(get_coco_id_from_path(train[2][i]))
+        if coco_id in train_images_split:
+            new_train_0.append(train[0][i])
+            new_train_1.append(train[1][i])
+            new_train_2.append(train[2][i])
+        elif coco_id in val_images_split:
+            new_val_0.append(train[0][i])
+            new_val_1.append(train[1][i])
+            new_val_2.append(train[2][i])
+        elif coco_id in test_images_split:
+            new_test_0.append(train[0][i])
+            new_test_1.append(train[1][i])
+            new_test_2.append(train[2][i])
+
+    for i in range(len(val[2])):
+        coco_id = unicode(get_coco_id_from_path(val[2][i]))
+        if coco_id in train_images_split:
+            new_train_0.append(val[0][i])
+            new_train_1.append(val[1][i])
+            new_train_2.append(val[2][i])
+        elif coco_id in val_images_split:
+            new_val_0.append(val[0][i])
+            new_val_1.append(val[1][i])
+            new_val_2.append(val[2][i])
+        elif coco_id in test_images_split:
+            new_test_0.append(val[0][i])
+            new_test_1.append(val[1][i])
+            new_test_2.append(val[2][i])
+
+    for i in range(len(test[2])):
+        coco_id = unicode(get_coco_id_from_path(test[2][i]))
+        if coco_id in train_images_split:
+            new_train_0.append(test[0][i])
+            new_train_1.append(test[1][i])
+            new_train_2.append(test[2][i])
+        elif coco_id in val_images_split:
+            new_val_0.append(test[0][i])
+            new_val_1.append(test[1][i])
+            new_val_2.append(test[2][i])
+        elif coco_id in test_images_split:
+            new_test_0.append(test[0][i])
+            new_test_1.append(test[1][i])
+            new_test_2.append(test[2][i])
+
+    train = (new_train_0, new_train_1, new_train_2)
+    val = (new_val_0, new_val_1, new_val_2)
+    test = (new_test_0, new_test_1, new_test_2)
+
+    logger.info('Train set size {}'.format(len(train[0])))
+    logger.info('Val set size {}'.format(len(val[0])))
+    logger.info('Test set size {}'.format(len(test[0])))
+
+
     data = scipy.io.loadmat('./data/coco/resnet_feats.mat')
     img_feats = data['feats'].astype(theano.config.floatX)
     
