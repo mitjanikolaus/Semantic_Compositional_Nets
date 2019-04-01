@@ -25,8 +25,7 @@ def load_params(path):
     data = np.load(path)
     for kk, pp in data.iteritems():
         params[kk] = data[kk].astype('float64')
-    params_set.append(params)
-    
+
     return params
 
 def _p(pp, name):
