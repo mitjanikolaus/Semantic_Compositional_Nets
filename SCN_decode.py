@@ -293,6 +293,7 @@ if __name__ == '__main__':
 
     generated_captions_map = {coco_id: caption for coco_id in coco_ids for caption in generated_captions}
 
-    name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
-    print 'write generated captions to decode_results.p'
-    cPickle.dump(generated_captions_map, open("decode_results_{}_beam_{}.p".format(name, beam_size), "wb"))
+    split_name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
+    name = "decode_results_{}_beam_{}.p".format(split_name, beam_size)
+    print 'write generated captions to %s' % name
+    cPickle.dump(generated_captions_map, open(name, "wb"))
