@@ -4,6 +4,7 @@ Developed by Zhe Gan, zg27@duke.edu, July, 12, 2016
 '''
 import argparse
 import json
+import os
 import sys
 import time
 import logging
@@ -350,6 +351,7 @@ if __name__ == '__main__':
     data = scipy.io.loadmat('./data/coco/tag_feats.mat')
     tag_feats = data['feats'].astype(theano.config.floatX)
 
+    name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
     [val_negll, te_negll] = train_model(train, val, test, img_feats, tag_feats, W,
-        n_words=n_words)
+        n_words=n_words, saveto = 'weights_{}.npz'.format(name))
         
