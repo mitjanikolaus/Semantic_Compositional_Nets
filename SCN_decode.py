@@ -17,20 +17,17 @@ from collections import OrderedDict, defaultdict
 from SCN_training import get_splits_from_occurrences_data
 
 
-def load_params(path, param_list):
+def load_params(path):
 
-    print 'loading learned params...'
+    print 'loading learned params from %s' % path
     
-    params_set = []
+    params = OrderedDict()
+    data = np.load(path)
+    for kk, pp in data.iteritems():
+        params[kk] = data[kk].astype('float64')
+    params_set.append(params)
     
-    for num in param_list:
-        params = OrderedDict()
-        data = np.load('%s%s.npz'%(path, num))  
-        for kk, pp in data.iteritems():
-            params[kk] = data[kk].astype('float64')
-        params_set.append(params)
-    
-    return params_set
+    return params
 
 def _p(pp, name):
     return '%s_%s' % (pp, name)
@@ -218,6 +215,12 @@ def check_args(args):
         help="File containing occurrences statistics about adjective noun pairs",
         required=True,
     )
+    parser.add_argument(
+        "--beam-size", help="Size of the decoding beam", type=int, default=1
+    )
+    parser.add_argument(
+        "--weights", help="Path to weights of trained model", required=True
+    )
 
     parsed_args = parser.parse_args(args)
     print(parsed_args)
@@ -258,11 +261,10 @@ if __name__ == '__main__':
     
     del img_feats, tag_feats
     
-    path = './pretrained_model/coco_result_scn_'
-    param_list = [0] # define how many ensembles to use
-    params_set = load_params(path, param_list)
-    
-    predset = generate(z, y, params_set, beam_size=5, max_step=20)
+    params_set = load_params(parsed_args.weights)
+
+    beam_size = parsed_args.beam_size
+    predset = generate(z, y, params_set, beam_size=beam_size, max_step=20)
 
     N_best_list = []
     for sent in predset:
@@ -294,4 +296,4 @@ if __name__ == '__main__':
 
     name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
     print 'write generated captions to decode_results.p'
-    cPickle.dump(generated_captions_map, open("decode_results_{}.p".format(name), "wb"))
+    cPickle.dump(generated_captions_map, open("decode_results_{}_beam_{}.p".format(name, beam_size), "wb"))
