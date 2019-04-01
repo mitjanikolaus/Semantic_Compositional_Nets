@@ -260,7 +260,7 @@ if __name__ == '__main__':
     
     del img_feats, tag_feats
     
-    params_set = load_params(parsed_args.weights)
+    params_set = [load_params(parsed_args.weights)]
 
     beam_size = parsed_args.beam_size
     predset = generate(z, y, params_set, beam_size=beam_size, max_step=20)
