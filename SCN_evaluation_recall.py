@@ -6,9 +6,8 @@ Computes the BLEU, ROUGE, METEOR, and CIDER
 using the COCO metrics scripts
 """
 
-# this requires the coco-caption package, https://github.com/tylin/coco-caption
 import argparse
-import cPickle
+import pickle
 import sys
 
 import numpy as np
@@ -125,11 +124,11 @@ if __name__ == '__main__':
     parsed_args = check_args(sys.argv[1:])
 
     # generated captions
-    generated_captions = cPickle.load(open("./decode_results.p", "rb"))
+    generated_captions = pickle.load(open("./decode_results.p", "rb"))
     # generated_captions = {idx: [lines.strip()] for (idx, lines) in enumerate(open('./coco_scn_5k_test.txt', 'rb') )}
     occurrences_data_file = parsed_args.occurrences_data
 
-    print recall_adjective_noun_pairs(generated_captions.values(), generated_captions.keys(), occurrences_data_file)
+    print(recall_adjective_noun_pairs(generated_captions.values(), generated_captions.keys(), occurrences_data_file))
     
     
     
