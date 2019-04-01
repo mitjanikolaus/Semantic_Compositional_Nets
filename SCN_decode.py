@@ -230,6 +230,10 @@ if __name__ == '__main__':
     imgid = []            
     for img in split['test']:
         imgid.append(img['imgid'])
+
+    coco_ids = []
+    for img in split['test']:
+        coco_ids.append(img['cocoid'])
     del split
         
     z = img_feats[:,imgid].T.astype('float64')
@@ -269,5 +273,9 @@ if __name__ == '__main__':
         rev.append(' '.join(smal))
         predtext.append(rev)
 
-    print 'write generated captions into a text file...'
-    open('./coco_scn_5k_test.txt', 'w').write('\n'.join([cap[0] for cap in predtext]))
+    best_captions = [cap[0] for cap in predtext]
+    generated_captions = {coco_id: caption for coco_id in coco_ids for caption in best_captions}
+
+
+    print 'write generated captions to decode_results.p'
+    cPickle.dump(generated_captions, open("decode_results.p", "wb"))
