@@ -3,13 +3,18 @@ Semantic Compositional Network https://arxiv.org/pdf/1611.08002.pdf
 Developed by Zhe Gan, zg27@duke.edu, July, 12, 2016
 Optimized by Xiaodong He, xiaohe@microsoft.com, Jan. 2017
 '''
-
+import argparse
 import datetime
 import cPickle
+import sys
+
 import scipy.io
 import numpy as np
 import json
 from collections import OrderedDict, defaultdict
+
+from SCN_training import get_splits_from_occurrences_data
+
 
 def load_params(path, param_list):
 
@@ -204,9 +209,27 @@ def generate(z_emb, y_emb, params_set, beam_size, max_step):
 
     return predset
 
+
+def check_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--occurrences-data",
+        help="File containing occurrences statistics about adjective noun pairs",
+        required=True,
+    )
+
+    parsed_args = parser.parse_args(args)
+    print(parsed_args)
+    return parsed_args
+
 if __name__ == '__main__':
+    parsed_args = check_args(sys.argv[1:])
 
     print "loading data..."
+
+    _, _, test_images_split = get_splits_from_occurrences_data(
+        parsed_args.occurrences_data, 0.1
+    )
 
     x = cPickle.load(open("./data/coco/data.p","rb"))
     wordtoix, ixtoword = x[3], x[4]
@@ -221,23 +244,16 @@ if __name__ == '__main__':
 
     dataset = json.load(open('./data/coco/dataset.json', 'r'))
 
-    split = defaultdict(list)
-    for img in dataset['images']:
-        split[img['split']].append(img)
-    
-    del dataset
-    
-    imgid = []            
-    for img in split['test']:
-        imgid.append(img['imgid'])
-
+    test_image_ids = []
     coco_ids = []
-    for img in split['test']:
-        coco_ids.append(img['cocoid'])
-    del split
-        
-    z = img_feats[:,imgid].T.astype('float64')
-    y = tag_feats[:,imgid].T.astype('float64')
+
+    for img in dataset['images']:
+        if unicode(img['cocoid']) in test_images_split:
+            test_image_ids.append(img['imgid'])
+            coco_ids.append(img['cocoid'])
+    
+    z = img_feats[:,test_image_ids].T.astype('float64')
+    y = tag_feats[:,test_image_ids].T.astype('float64')
     
     del img_feats, tag_feats
     
@@ -262,20 +278,19 @@ if __name__ == '__main__':
 
     cPickle.dump(N_best_list, open("coco_nbest.p", "wb"))
 
-    predtext = []
-    for sent in predset:
+    generated_captions = []
+    for top_k_sentences in predset:
         rev = []
-        sen = sent[0]
-        smal = []
-        for w in sen[1]:
-            smal.append(ixtoword[w])
-        smal.pop() #remove the last '.'
-        rev.append(' '.join(smal))
-        predtext.append(rev)
+        for sentence in top_k_sentences:
+            smal = []
+            for w in sentence[1]:
+                smal.append(ixtoword[w])
+            smal.pop() #remove the last '.'
+            rev.append(' '.join(smal))
+        generated_captions.append(rev)
 
-    best_captions = [cap[0] for cap in predtext]
-    generated_captions = {coco_id: caption for coco_id in coco_ids for caption in best_captions}
+    generated_captions_map = {coco_id: caption for coco_id in coco_ids for caption in generated_captions}
 
 
     print 'write generated captions to decode_results.p'
-    cPickle.dump(generated_captions, open("decode_results.p", "wb"))
+    cPickle.dump(generated_captions_map, open("decode_results.p", "wb"))

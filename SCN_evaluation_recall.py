@@ -129,8 +129,7 @@ if __name__ == '__main__':
     # generated_captions = {idx: [lines.strip()] for (idx, lines) in enumerate(open('./coco_scn_5k_test.txt', 'rb') )}
     occurrences_data_file = parsed_args.occurrences_data
 
-    captions = [[generated_caption] for generated_caption in generated_captions.values()]
-    print recall_adjective_noun_pairs(captions, generated_captions.keys(), occurrences_data_file)
+    print recall_adjective_noun_pairs(generated_captions.values(), generated_captions.keys(), occurrences_data_file)
     
     
     
