@@ -127,7 +127,7 @@ if __name__ == '__main__':
     generated_captions = pickle.load(open("./decode_results.p", "rb"))
     # generated_captions = {idx: [lines.strip()] for (idx, lines) in enumerate(open('./coco_scn_5k_test.txt', 'rb') )}
     occurrences_data_file = parsed_args.occurrences_data
-    coco_ids = [unicode(key) for key in generated_captions.keys()]
+    coco_ids = [str(key) for key in generated_captions.keys()]
     print(recall_adjective_noun_pairs(generated_captions.values(), coco_ids, occurrences_data_file))
     
     
