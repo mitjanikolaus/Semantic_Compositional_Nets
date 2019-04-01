@@ -265,21 +265,6 @@ if __name__ == '__main__':
     beam_size = parsed_args.beam_size
     predset = generate(z, y, params_set, beam_size=beam_size, max_step=20)
 
-    N_best_list = []
-    for sent in predset:
-        tmp = []
-        for sen in sent:
-            rev = []
-            smal = []
-            for w in sen[1]:
-                smal.append(ixtoword[w])
-            smal.pop() #remove the last '.'
-            rev.append(' '.join(smal))
-            tmp.append((sen[0],sen[1],rev))
-        N_best_list.append(tmp)
-
-    cPickle.dump(N_best_list, open("coco_nbest.p", "wb"))
-
     generated_captions = []
     for top_k_sentences in predset:
         rev = []
@@ -291,7 +276,7 @@ if __name__ == '__main__':
             rev.append(' '.join(smal))
         generated_captions.append(rev)
 
-    generated_captions_map = {coco_id: caption for coco_id in coco_ids for caption in generated_captions}
+    generated_captions_map = {coco_id: caption for coco_id, caption in zip(coco_ids, generated_captions)}
 
     split_name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
     name = "decode_results_{}_beam_{}.p".format(split_name, beam_size)
