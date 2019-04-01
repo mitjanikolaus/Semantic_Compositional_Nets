@@ -242,7 +242,7 @@ if __name__ == '__main__':
     del img_feats, tag_feats
     
     path = './pretrained_model/coco_result_scn_'
-    param_list = [0,1,2,3,4,5] # define how many ensembles to use
+    param_list = [0] # define how many ensembles to use
     params_set = load_params(path, param_list)
     
     predset = generate(z, y, params_set, beam_size=5, max_step=20)
