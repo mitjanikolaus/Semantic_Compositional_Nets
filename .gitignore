@@ -6,3 +6,4 @@ pycocoevalcap/
 *.p
 *.txt
 slurm-*.out
+.idea/
