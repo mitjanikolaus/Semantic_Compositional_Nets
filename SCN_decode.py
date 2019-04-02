@@ -257,9 +257,39 @@ if __name__ == '__main__':
     
     z = img_feats[:,test_image_ids].T.astype('float64')
     y = tag_feats[:,test_image_ids].T.astype('float64')
-    
-    del img_feats, tag_feats
-    
+
+    x = cPickle.load(open("./data/coco/tag_vocab.p", "rb"))
+    tag_wordtoix, tag_ixtoword = x[0], x[1]
+
+    adjective = 'brown'
+    noun = 'dog'
+
+    noun_occurrces = 0
+    adj_occurrences = 0
+
+    noun_prob = 0
+    adj_prob = 0
+    for i in range(len(y)):
+        y[i] = np.array([max(prob-0.5, 0.0) for prob in y[i]])
+        y[i][tag_wordtoix[adjective]] = 1.0
+        y[i][tag_wordtoix[noun]] = 1.0
+
+        top_10_tags = [tag_ixtoword[ind] for ind in y[i].argsort()[-10:]]
+        adj_prob += y[i][tag_wordtoix[adjective]]
+        noun_prob += y[i][tag_wordtoix[noun]]
+        if adjective in top_10_tags:
+            adj_occurrences += 1
+
+        if noun in top_10_tags:
+            noun_occurrces += 1
+
+    print len(y)
+    print noun_occurrces
+    print adj_occurrences
+    print noun_prob / len(y)
+    print adj_prob / len(y)
+
+
     params_set = [load_params(parsed_args.weights)]
 
     beam_size = parsed_args.beam_size
@@ -277,6 +307,12 @@ if __name__ == '__main__':
         generated_captions.append(rev)
 
     generated_captions_map = {coco_id: caption for coco_id, caption in zip(coco_ids, generated_captions)}
+
+    for id, captions in generated_captions_map.items():
+        print(id)
+        for caption in captions:
+            print(caption)
+        print('')
 
     split_name = os.path.basename(parsed_args.occurrences_data).split(".")[0]
     name = "decode_results_{}_beam_{}.p".format(split_name, beam_size)
